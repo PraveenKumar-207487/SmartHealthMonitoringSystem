@@ -1,0 +1,213 @@
+
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SHMS | Register</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <style>
+        .register-container {
+            max-width: 520px;
+            margin: 35px auto;
+            padding: 20px;
+        }
+
+        .register-card {
+            background: white;
+            padding: 28px;
+            border-radius: 14px;
+            box-shadow: 0 4px 18px rgba(0,0,0,0.1);
+        }
+
+        .register-card input,
+        .register-card select,
+        .register-card textarea {
+            width: 100%;
+            padding: 11px;
+            margin: 7px 0 15px;
+            box-sizing: border-box;
+        }
+
+        .register-card button {
+            width: 100%;
+            padding: 12px;
+            cursor: pointer;
+        }
+
+        .register-message {
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+<div class="register-container">
+    <div class="register-card">
+        <h1>SHMS</h1>
+        <h2>Create Your Account</h2>
+        <p>Smart Health Monitoring System</p>
+
+        <form id="registerForm">
+            <label for="role">Register as</label>
+            <select id="role" required>
+                <option value="PATIENT">Patient</option>
+                <option value="DOCTOR">Doctor</option>
+            </select>
+
+            <label for="name">Full Name</label>
+            <input id="name" type="text" required
+                   placeholder="Enter your full name">
+
+            <label for="email">Email</label>
+            <input id="email" type="email" required
+                   placeholder="Enter your email">
+
+            <label for="password">Password</label>
+            <input id="password" type="password" required minlength="8"
+                   placeholder="Create a password">
+
+            <label for="phone">Phone</label>
+            <input id="phone" type="tel" required
+                   placeholder="Enter your phone number">
+
+            <div id="patientFields">
+                <label for="age">Age</label>
+                <input id="age" type="number" min="1" max="120"
+                       placeholder="Enter your age">
+
+                <label for="gender">Gender</label>
+                <select id="gender">
+                    <option value="">Select gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                </select>
+
+                <label for="medicalHistory">Medical History</label>
+                <textarea id="medicalHistory" rows="3"
+                          placeholder="Enter relevant medical history"></textarea>
+            </div>
+
+            <div id="doctorFields" class="hidden">
+                <label for="specialization">Specialization</label>
+                <input id="specialization" type="text"
+                       placeholder="e.g. Cardiologist">
+            </div>
+
+            <button type="submit" id="registerButton">
+                Create Account
+            </button>
+
+            <p id="message" class="register-message" role="status"></p>
+        </form>
+
+        <p>Already registered? <a th:href="@{/login}">Login here</a></p>
+    </div>
+</div>
+
+<script>
+    const roleSelect = document.getElementById("role");
+    const patientFields = document.getElementById("patientFields");
+    const doctorFields = document.getElementById("doctorFields");
+    const registerForm = document.getElementById("registerForm");
+    const message = document.getElementById("message");
+    const registerButton = document.getElementById("registerButton");
+
+    const ageInput = document.getElementById("age");
+    const genderInput = document.getElementById("gender");
+    const specializationInput = document.getElementById("specialization");
+
+    function updateFields() {
+        const isPatient = roleSelect.value === "PATIENT";
+
+        patientFields.classList.toggle("hidden", !isPatient);
+        doctorFields.classList.toggle("hidden", isPatient);
+
+        ageInput.required = isPatient;
+        genderInput.required = isPatient;
+        specializationInput.required = !isPatient;
+    }
+
+    roleSelect.addEventListener("change", updateFields);
+    updateFields();
+
+    registerForm.addEventListener("submit", async function(event) {
+        event.preventDefault();
+
+        const role = roleSelect.value;
+        const isPatient = role === "PATIENT";
+
+        const payload = {
+            name: document.getElementById("name").value.trim(),
+            email: document.getElementById("email").value.trim(),
+            password: document.getElementById("password").value,
+            phone: document.getElementById("phone").value.trim()
+        };
+
+        if (isPatient) {
+            payload.age = Number(ageInput.value);
+            payload.gender = genderInput.value;
+            payload.medicalHistory =
+                document.getElementById("medicalHistory").value.trim();
+        } else {
+            payload.specialization = specializationInput.value.trim();
+        }
+
+        const endpoint = isPatient
+            ? "/auth/register"
+            : "/auth/register/doctor";
+
+        message.textContent = "";
+        registerButton.disabled = true;
+        registerButton.textContent = "Creating account...";
+
+        try {
+            const response = await fetch(endpoint, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json"
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const responseText = await response.text();
+            let data = {};
+
+            try {
+                data = responseText ? JSON.parse(responseText) : {};
+            } catch {
+                data = { message: responseText };
+            }
+
+            if (!response.ok) {
+                throw new Error(
+                    data.message || data.error ||
+                    "Registration failed. HTTP " + response.status
+                );
+            }
+
+            message.textContent =
+                "Account created successfully! Redirecting to login...";
+
+            registerButton.textContent = "Account Created";
+
+            setTimeout(() => {
+                window.location.href = "/login";
+            }, 1500);
+
+        } catch (error) {
+            message.textContent = error.message ||
+                "Unable to connect to the server.";
+            registerButton.disabled = false;
+            registerButton.textContent = "Create Account";
+        }
+    });
+</script>
+</body>
+</html>

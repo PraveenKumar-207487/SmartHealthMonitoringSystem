@@ -1,0 +1,700 @@
+
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SHMS | Patient Dashboard</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+
+    <style>
+        .patient-dashboard {
+            max-width: 1200px;
+            margin: 35px auto;
+            padding: 20px;
+        }
+
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .dashboard-header h1 {
+            text-align: left;
+            margin-bottom: 8px;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            align-items: start;
+        }
+
+        .dashboard-card {
+            background: white;
+            padding: 22px;
+            border-radius: 12px;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+            min-width: 0;
+        }
+
+        .dashboard-card button,
+        .logout-button {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .primary-button {
+            background: #1769aa;
+            color: white;
+        }
+
+        .read-button {
+            background: #198754;
+            color: white;
+        }
+
+        .dashboard-result {
+            margin-top: 18px;
+            overflow-wrap: anywhere;
+        }
+
+        .status-message {
+            margin: 15px 0;
+        }
+
+        .info-list {
+            display: grid;
+            gap: 12px;
+        }
+
+        .info-row {
+            padding: 10px 12px;
+            background: #f5f8fc;
+            border-radius: 7px;
+        }
+
+        .info-label {
+            display: block;
+            color: #536273;
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+
+        .info-value {
+            color: #172b4d;
+            font-weight: 500;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+
+        .vital-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(125px, 1fr));
+            gap: 12px;
+        }
+
+        .vital-item {
+            background: #f0f7ff;
+            padding: 15px;
+            border-radius: 9px;
+            min-width: 0;
+        }
+
+        .vital-value {
+            font-size: 21px;
+            font-weight: bold;
+            color: #1769aa;
+            overflow-wrap: anywhere;
+        }
+
+        .vital-label {
+            font-size: 13px;
+            color: #536273;
+            margin-bottom: 6px;
+        }
+
+        /* Horizontal alert cards */
+        .alert-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 18px;
+            align-items: stretch;
+        }
+
+        .alert-item {
+            min-width: 0;
+            padding: 18px;
+            margin: 0;
+            background: white;
+            border: 1px solid #e1e7ef;
+            border-left: 5px solid #dc3545;
+            border-radius: 12px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06);
+            overflow-wrap: anywhere;
+        }
+
+        .alert-item.read {
+            border-left-color: #198754;
+            background: #f7fcf8;
+        }
+
+        .alert-heading {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .alert-heading strong {
+            flex: 1;
+            min-width: 130px;
+            color: #172b4d;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 9px;
+            border-radius: 20px;
+            font-size: 12px;
+            background: #fff0f0;
+            color: #b02a37;
+            white-space: nowrap;
+        }
+
+        .status-badge.read {
+            background: #d1e7dd;
+            color: #146c43;
+        }
+
+        .alert-severity {
+            color: #b02a37;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .alert-item.read .alert-severity {
+            color: #536273;
+        }
+
+        .alert-date {
+            color: #68778a;
+            font-size: 13px;
+            margin-bottom: 16px;
+        }
+
+        .alert-vitals-title {
+            display: block;
+            margin-top: 12px;
+            color: #172b4d;
+        }
+
+        .alert-vitals {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .alert-vital-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            padding: 10px;
+            background: #f0f7ff;
+            border-radius: 8px;
+            min-width: 0;
+        }
+
+        .alert-vital-item span {
+            font-size: 12px;
+            color: #536273;
+        }
+
+        .alert-vital-item strong {
+            font-size: 15px;
+            color: #1769aa;
+            overflow-wrap: anywhere;
+        }
+
+        .alert-item .read-button {
+            width: auto;
+            margin-top: 14px;
+            padding: 10px 14px;
+            background: #198754;
+            color: white;
+        }
+
+        .alert-item .read-button:hover {
+            background: #146c43;
+        }
+
+        button:disabled {
+            opacity: 0.65;
+            cursor: wait;
+        }
+
+        .empty-message {
+            color: #68778a;
+            padding: 12px 0;
+        }
+
+        .error-message {
+            color: #b02a37;
+        }
+
+        @media (max-width: 600px) {
+            .patient-dashboard {
+                margin: 10px auto;
+                padding: 12px;
+            }
+
+            .dashboard-card {
+                padding: 16px;
+            }
+
+            .alert-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<div class="patient-dashboard">
+
+    <header class="dashboard-header">
+        <div>
+            <h1>SHMS</h1>
+            <p>Smart Health Monitoring System</p>
+        </div>
+        <button class="logout-button" onclick="logout()">Logout</button>
+    </header>
+
+    <h2>Patient Dashboard</h2>
+    <p>View your health information and monitoring alerts.</p>
+    <p id="statusMessage" class="status-message" role="status"></p>
+
+    <div class="dashboard-grid">
+
+        <section class="dashboard-card">
+            <h3>My Profile</h3>
+            <p>View your personal and medical details.</p>
+            <button class="primary-button"
+                    onclick="loadSection('profile', '/patients/me', 'profile')">
+                View Profile
+            </button>
+            <div id="profile" class="dashboard-result" aria-live="polite"></div>
+        </section>
+
+        <section class="dashboard-card">
+            <h3>My Vital Signs</h3>
+            <p>View your recorded health readings.</p>
+            <button class="primary-button"
+                    onclick="loadSection('vitals', '/vitals/me', 'vitals')">
+                View Vital Signs
+            </button>
+            <div id="vitals" class="dashboard-result" aria-live="polite"></div>
+        </section>
+
+    </div>
+
+    <!-- Alerts use the full dashboard width -->
+    <section class="dashboard-card" style="margin-top: 20px;">
+        <h3>My Alerts</h3>
+        <p>Check alerts generated for abnormal readings.</p>
+        <button class="primary-button"
+                onclick="loadSection('alerts', '/alerts/me', 'alerts')">
+            View Alerts
+        </button>
+        <div id="alerts" class="dashboard-result" aria-live="polite"></div>
+    </section>
+
+</div>
+
+<script>
+    const token = sessionStorage.getItem("shmsToken");
+    const role = sessionStorage.getItem("shmsRole");
+
+    if (!token || role !== "PATIENT") {
+        window.location.replace("/login");
+    }
+
+    function showValue(value) {
+        if (value === null || value === undefined || value === "") {
+            return "Not available";
+        }
+
+        if (typeof value === "object") {
+            return Array.isArray(value)
+                ? value.map(showValue).join(", ")
+                : "[Details not displayed]";
+        }
+
+        return String(value);
+    }
+
+    function prettifyKey(key) {
+        return key
+            .replace(/([a-z])([A-Z])/g, "$1 $2")
+            .replace(/[_-]/g, " ")
+            .replace(/\b\w/g, letter => letter.toUpperCase());
+    }
+
+    function createInfoRow(label, value) {
+        const row = document.createElement("div");
+        row.className = "info-row";
+
+        const title = document.createElement("span");
+        title.className = "info-label";
+        title.textContent = label;
+
+        const content = document.createElement("span");
+        content.className = "info-value";
+        content.textContent = showValue(value);
+
+        row.append(title, content);
+        return row;
+    }
+
+    function getList(data) {
+        if (Array.isArray(data)) {
+            return data;
+        }
+
+        if (data && typeof data === "object") {
+            for (const key of ["alerts", "content", "data", "results"]) {
+                if (Array.isArray(data[key])) {
+                    return data[key];
+                }
+            }
+
+            return [data];
+        }
+
+        return [];
+    }
+
+    function renderProfile(output, data) {
+        if (!data || typeof data !== "object" || Array.isArray(data)) {
+            output.textContent = "No profile details available.";
+            return;
+        }
+
+        const list = document.createElement("div");
+        list.className = "info-list";
+
+        Object.entries(data).forEach(([key, value]) => {
+            if (/password|token|doctor/i.test(key)) return;
+
+            if (value !== null && typeof value === "object") {
+                return;
+            }
+
+            list.appendChild(createInfoRow(prettifyKey(key), value));
+        });
+
+        if (!list.children.length) {
+            output.textContent = "No profile details available.";
+        } else {
+            output.replaceChildren(list);
+        }
+    }
+
+    function renderVitals(output, data) {
+        const items = getList(data);
+
+        if (!items.length) {
+            output.textContent = "No vital readings available yet.";
+            output.className = "dashboard-result empty-message";
+            return;
+        }
+
+        const container = document.createElement("div");
+        container.className = "info-list";
+
+        items.forEach(item => {
+            if (!item || typeof item !== "object") {
+                container.appendChild(createInfoRow("Reading", item));
+                return;
+            }
+
+            const card = document.createElement("div");
+            card.className = "info-row";
+
+            const grid = document.createElement("div");
+            grid.className = "vital-grid";
+
+            Object.entries(item).forEach(([key, value]) => {
+                if (/patient|password|token/i.test(key)) return;
+
+                if (value !== null && typeof value === "object") return;
+
+                const vital = document.createElement("div");
+                vital.className = "vital-item";
+
+                const label = document.createElement("div");
+                label.className = "vital-label";
+                label.textContent = prettifyKey(key);
+
+                const reading = document.createElement("div");
+                reading.className = "vital-value";
+                reading.textContent = showValue(value);
+
+                vital.append(label, reading);
+                grid.appendChild(vital);
+            });
+
+            card.appendChild(grid);
+            container.appendChild(card);
+        });
+
+        output.className = "dashboard-result";
+        output.replaceChildren(container);
+    }
+
+    function renderAlerts(output, data) {
+        const alerts = getList(data);
+
+        if (!alerts.length) {
+            output.textContent = "You have no alerts.";
+            output.className = "dashboard-result empty-message";
+            return;
+        }
+
+        const container = document.createElement("div");
+        container.className = "alert-grid";
+
+        alerts.forEach(alert => {
+            if (!alert || typeof alert !== "object") return;
+
+            const card = document.createElement("article");
+            card.className = "alert-item";
+
+            // Actual API field: "read"
+            const isRead = alert.read === true ||
+                String(alert.read).toLowerCase() === "true";
+
+            const alertId = alert.alertId;
+
+            if (isRead) {
+                card.classList.add("read");
+            }
+
+            const heading = document.createElement("div");
+            heading.className = "alert-heading";
+
+            const title = document.createElement("strong");
+            title.textContent = alert.message || "Health Alert";
+
+            const badge = document.createElement("span");
+            badge.className = "status-badge" + (isRead ? " read" : "");
+            badge.textContent = isRead ? "Read" : "Unread";
+
+            heading.append(title, badge);
+            card.appendChild(heading);
+
+            const severity = document.createElement("p");
+            severity.className = "alert-severity";
+            severity.textContent =
+                "Severity: " + (alert.severity || "Not specified");
+            card.appendChild(severity);
+
+            if (alert.createdAt) {
+                const date = document.createElement("p");
+                date.className = "alert-date";
+
+                const parsedDate = new Date(alert.createdAt);
+                date.textContent = "Created: " +
+                    (Number.isNaN(parsedDate.getTime())
+                        ? alert.createdAt
+                        : parsedDate.toLocaleString());
+
+                card.appendChild(date);
+            }
+
+            const vitalStats = alert.vitalStats;
+
+            if (vitalStats && typeof vitalStats === "object") {
+                const vitalsTitle = document.createElement("strong");
+                vitalsTitle.className = "alert-vitals-title";
+                vitalsTitle.textContent = "Related Vital Signs";
+                card.appendChild(vitalsTitle);
+
+                const vitals = document.createElement("div");
+                vitals.className = "alert-vitals";
+
+                const vitalFields = [
+                    ["Heart Rate", vitalStats.heartRate, "bpm"],
+                    ["Systolic BP", vitalStats.systolicBP, "mmHg"],
+                    ["Diastolic BP", vitalStats.diastolicBP, "mmHg"],
+                    ["Oxygen Level", vitalStats.oxygenLevel, "%"],
+                    ["Temperature", vitalStats.temperature, "°C"]
+                ];
+
+                vitalFields.forEach(([label, value, unit]) => {
+                    if (value === null || value === undefined) return;
+
+                    const item = document.createElement("div");
+                    item.className = "alert-vital-item";
+
+                    const name = document.createElement("span");
+                    name.textContent = label;
+
+                    const reading = document.createElement("strong");
+                    reading.textContent = value + " " + unit;
+
+                    item.append(name, reading);
+                    vitals.appendChild(item);
+                });
+
+                card.appendChild(vitals);
+            }
+
+            if (!isRead && alertId !== undefined && alertId !== null) {
+                const button = document.createElement("button");
+                button.className = "read-button";
+                button.textContent = "Mark as Read";
+
+                button.onclick = () =>
+                    markAsRead(alertId, button, card, badge);
+
+                card.appendChild(button);
+            }
+
+            container.appendChild(card);
+        });
+
+        output.className = "dashboard-result";
+        output.replaceChildren(container);
+
+        if (!container.children.length) {
+            output.textContent = "No valid alerts were returned.";
+        }
+    }
+
+    function renderGeneric(output, data) {
+        if (data === null || data === undefined || data === "") {
+            output.textContent = "No data available.";
+            return;
+        }
+
+        if (typeof data !== "object") {
+            output.textContent = showValue(data);
+            return;
+        }
+
+        const list = document.createElement("div");
+        list.className = "info-list";
+
+        Object.entries(data).forEach(([key, value]) => {
+            if (/password|token/i.test(key)) return;
+
+            if (value !== null && typeof value === "object") return;
+
+            list.appendChild(createInfoRow(prettifyKey(key), value));
+        });
+
+        output.replaceChildren(list);
+    }
+
+    async function loadSection(elementId, endpoint, type) {
+        const output = document.getElementById(elementId);
+        const status = document.getElementById("statusMessage");
+
+        output.textContent = "Loading...";
+        output.className = "dashboard-result";
+        status.textContent = "";
+
+        try {
+            const response = await fetch(endpoint, {
+                method: "GET",
+                headers: {
+                    "Authorization": "Bearer " + token,
+                    "Accept": "application/json"
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error("Request failed: HTTP " + response.status);
+            }
+
+            const text = await response.text();
+            const data = text ? JSON.parse(text) : null;
+
+            if (type === "profile") {
+                renderProfile(output, data);
+            } else if (type === "vitals") {
+                renderVitals(output, data);
+            } else if (type === "alerts") {
+                renderAlerts(output, data);
+            } else {
+                renderGeneric(output, data);
+            }
+        } catch (error) {
+            output.textContent = error.message;
+            output.className = "dashboard-result error-message";
+            status.textContent = "Unable to load the requested information.";
+            console.error("Dashboard error:", error);
+        }
+    }
+
+    async function markAsRead(alertId, button, card, badge) {
+        const status = document.getElementById("statusMessage");
+
+        button.disabled = true;
+        button.textContent = "Updating...";
+        status.textContent = "";
+
+        try {
+            const response = await fetch(
+                "/alerts/" + encodeURIComponent(alertId) + "/read",
+                {
+                    method: "PUT",
+                    headers: {
+                        "Authorization": "Bearer " + token,
+                        "Accept": "application/json"
+                    }
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error(
+                    "Could not mark alert as read (HTTP " +
+                    response.status + ")."
+                );
+            }
+
+            card.classList.add("read");
+            badge.classList.add("read");
+            badge.textContent = "Read";
+            button.remove();
+
+            status.textContent = "Alert marked as read.";
+        } catch (error) {
+            button.disabled = false;
+            button.textContent = "Mark as Read";
+            status.textContent = error.message;
+            console.error("Mark as read error:", error);
+        }
+    }
+
+    function logout() {
+        sessionStorage.removeItem("shmsToken");
+        sessionStorage.removeItem("shmsRole");
+        sessionStorage.removeItem("shmsEmail");
+        window.location.replace("/login");
+    }
+</script>
+</body>
+</html>

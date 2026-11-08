@@ -1,0 +1,1032 @@
+
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SHMS | Doctor Dashboard</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+
+    <style>
+        .doctor-dashboard {
+            max-width: 1200px;
+            margin: 35px auto;
+            padding: 20px;
+        }
+
+        .doctor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .doctor-header h1 {
+            margin-bottom: 5px;
+        }
+
+        .doctor-card {
+            background: white;
+            padding: 22px;
+            margin-top: 24px;
+            border-radius: 12px;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .doctor-card button,
+        .logout-button {
+            padding: 10px 16px;
+            margin: 5px 5px 5px 0;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            background: #1769aa;
+            color: white;
+        }
+
+        .logout-button {
+            background: #dc3545;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: wait;
+        }
+
+        .patient-input {
+            width: 100%;
+            max-width: 300px;
+            box-sizing: border-box;
+            padding: 10px;
+            margin: 8px 0;
+            border: 1px solid #ccd5e0;
+            border-radius: 6px;
+        }
+
+        .result {
+            margin-top: 18px;
+            overflow-wrap: anywhere;
+        }
+
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 16px;
+            align-items: stretch;
+        }
+
+        .data-card {
+            min-width: 0;
+            padding: 18px;
+            border: 1px solid #e1e7ef;
+            border-radius: 10px;
+            background: #fff;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+
+        .data-card h4 {
+            margin: 0 0 14px;
+            color: #1769aa;
+        }
+
+        .info-list {
+            display: grid;
+            gap: 10px;
+        }
+
+        .info-row {
+            padding: 10px;
+            border-radius: 7px;
+            background: #f5f8fc;
+        }
+
+        .info-label {
+            display: block;
+            color: #596779;
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+
+        .info-value {
+            color: #172b4d;
+            font-weight: 500;
+            overflow-wrap: anywhere;
+            white-space: pre-wrap;
+        }
+
+        .vital-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(125px, 1fr));
+            gap: 12px;
+        }
+
+        .vital-item {
+            min-width: 0;
+            padding: 14px;
+            background: #f0f7ff;
+            border-radius: 9px;
+        }
+
+        .vital-label {
+            color: #596779;
+            font-size: 12px;
+            margin-bottom: 7px;
+        }
+
+        .vital-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #1769aa;
+            overflow-wrap: anywhere;
+        }
+
+        .alert-card {
+            border-left: 5px solid #dc3545;
+        }
+
+        .alert-heading {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .severity {
+            font-weight: bold;
+            color: #b02a37;
+            margin: 12px 0;
+        }
+
+        .severity.high,
+        .severity.critical {
+            color: #b02a37;
+        }
+
+        .severity.medium {
+            color: #b76b00;
+        }
+
+        .severity.low {
+            color: #198754;
+        }
+
+        .alert-date {
+            color: #68778a;
+            font-size: 13px;
+        }
+
+        .badge {
+            padding: 4px 9px;
+            border-radius: 20px;
+            background: #e8eef5;
+            color: #344054;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .empty-message {
+            color: #68778a;
+            padding: 12px 0;
+        }
+
+        .error-message {
+            color: #b02a37;
+            white-space: pre-wrap;
+        }
+
+        .status-message {
+            margin: 12px 0;
+            overflow-wrap: anywhere;
+        }
+
+        .dashboard-section {
+            background: white;
+            padding: 22px;
+            margin-top: 24px;
+            border-radius: 12px;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .dashboard-section button {
+            padding: 10px 16px;
+            margin: 5px 5px 5px 0;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            background: #1769aa;
+            color: white;
+        }
+
+        #assignPatientMessage {
+            overflow-wrap: anywhere;
+        }
+
+        @media (max-width: 600px) {
+            .doctor-dashboard {
+                margin: 10px auto;
+                padding: 12px;
+            }
+
+            .doctor-card,
+            .dashboard-section {
+                padding: 16px;
+            }
+
+            .card-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<div class="doctor-dashboard">
+
+    <header class="doctor-header">
+        <div>
+            <h1>SHMS</h1>
+            <p>Smart Health Monitoring System</p>
+        </div>
+        <button type="button" class="logout-button" onclick="logout()">
+            Logout
+        </button>
+    </header>
+
+    <h2>Doctor Dashboard</h2>
+    <p>Monitor your assigned patients and review their health information.</p>
+    <p id="statusMessage" class="status-message" role="status"></p>
+
+    <!-- Assign Patients -->
+    <section class="dashboard-section">
+        <h3>Assign Patients</h3>
+        <p>View patients who have not yet been assigned to a doctor.</p>
+
+        <button type="button" id="loadUnassignedButton"
+                onclick="loadUnassignedPatients()">
+            Load Unassigned Patients
+        </button>
+
+        <div id="unassignedPatients" class="result" aria-live="polite">
+            <p class="empty-message">
+                Click the button to load available patients.
+            </p>
+        </div>
+
+        <p id="assignPatientMessage" class="status-message"
+           role="status"></p>
+    </section>
+
+    <!-- My Assigned Patients -->
+    <section class="doctor-card">
+        <h3>My Assigned Patients</h3>
+        <p>View patients assigned to you.</p>
+
+        <button type="button" onclick="loadPatients()">
+            Load Patients
+        </button>
+
+        <div id="patients" class="result" aria-live="polite"></div>
+    </section>
+
+    <!-- Record Vital Signs -->
+    <section class="doctor-card">
+        <h3>Record Patient Vital Signs</h3>
+        <p>Enter the latest readings for a patient assigned to you.</p>
+
+        <form id="vitalsForm">
+            <label for="recordPatientId">Patient ID</label><br>
+            <input type="number" id="recordPatientId"
+                   class="patient-input" min="1"
+                   placeholder="Enter patient ID" required>
+            <br>
+
+            <label for="heartRate">Heart Rate (bpm)</label><br>
+            <input type="number" id="heartRate"
+                   class="patient-input" min="1" required>
+            <br>
+
+            <label for="systolicBP">Systolic BP (mmHg)</label><br>
+            <input type="number" id="systolicBP"
+                   class="patient-input" min="1" required>
+            <br>
+
+            <label for="diastolicBP">Diastolic BP (mmHg)</label><br>
+            <input type="number" id="diastolicBP"
+                   class="patient-input" min="1" required>
+            <br>
+
+            <label for="oxygenLevel">Oxygen Level (%)</label><br>
+            <input type="number" id="oxygenLevel"
+                   class="patient-input" min="0" max="100" required>
+            <br>
+
+            <label for="temperature">Temperature (°C)</label><br>
+            <input type="number" id="temperature"
+                   class="patient-input" min="1" step="any" required>
+            <br>
+
+            <button type="submit" id="saveVitalsButton">
+                Save Vital Signs
+            </button>
+        </form>
+
+        <p id="saveVitalsMessage" class="status-message" role="status"></p>
+
+        <hr>
+
+        <h3>View Patient Vital Signs</h3>
+
+        <label for="patientId">Patient ID</label><br>
+        <input type="number" id="patientId"
+               class="patient-input" min="1"
+               placeholder="Enter patient ID">
+        <br>
+
+        <button type="button" onclick="loadPatientData('vitals')">
+            View Vital Signs
+        </button>
+
+        <div id="vitals" class="result" aria-live="polite"></div>
+    </section>
+
+    <!-- Patient Alerts -->
+    <section class="doctor-card">
+        <h3>Patient Alerts</h3>
+        <p>Review alerts for an assigned patient.</p>
+
+        <button type="button" onclick="loadPatientData('alerts')">
+            View Alerts
+        </button>
+
+        <div id="alerts" class="result" aria-live="polite"></div>
+    </section>
+
+</div>
+
+<script>
+    const token = sessionStorage.getItem("shmsToken");
+    const role = sessionStorage.getItem("shmsRole");
+
+    if (!token || role !== "DOCTOR") {
+        window.location.replace("/login");
+    }
+
+    function prettifyKey(key) {
+        return key
+            .replace(/([a-z])([A-Z])/g, "$1 $2")
+            .replace(/[_-]/g, " ")
+            .replace(/\b\w/g, letter => letter.toUpperCase());
+    }
+
+    function formatValue(value) {
+        if (value === null || value === undefined || value === "") {
+            return "Not available";
+        }
+
+        if (typeof value === "object") {
+            return Array.isArray(value)
+                ? value.map(formatValue).join(", ")
+                : "[Details shown separately]";
+        }
+
+        return String(value);
+    }
+
+    function getList(data) {
+        if (Array.isArray(data)) return data;
+
+        if (data && typeof data === "object") {
+            for (const key of [
+                "patients", "vitals", "alerts", "content", "data", "results"
+            ]) {
+                if (Array.isArray(data[key])) return data[key];
+            }
+
+            return [data];
+        }
+
+        return [];
+    }
+
+    async function apiRequest(url) {
+        const response = await fetch(url, {
+            headers: {
+                "Authorization": "Bearer " + token,
+                "Accept": "application/json"
+            }
+        });
+
+        const responseText = await response.text();
+
+        if (!response.ok) {
+            throw new Error(
+                "HTTP " + response.status + ": " +
+                (responseText || response.statusText)
+            );
+        }
+
+        if (!responseText.trim()) return null;
+
+        try {
+            return JSON.parse(responseText);
+        } catch {
+            throw new Error("The server returned an unexpected response.");
+        }
+    }
+
+    function addInfoRow(container, label, value) {
+        const row = document.createElement("div");
+        row.className = "info-row";
+
+        const title = document.createElement("span");
+        title.className = "info-label";
+        title.textContent = label;
+
+        const content = document.createElement("span");
+        content.className = "info-value";
+        content.textContent = formatValue(value);
+
+        row.append(title, content);
+        container.appendChild(row);
+    }
+
+
+    function renderPatients(output, data) {
+        const patients = getList(data);
+
+        if (!patients.length) {
+            output.textContent = "No assigned patients found.";
+            output.className = "result empty-message";
+            return;
+        }
+
+        const grid = document.createElement("div");
+        grid.className = "card-grid";
+
+        patients.forEach((patient, index) => {
+            if (!patient || typeof patient !== "object") return;
+
+            const card = document.createElement("article");
+            card.className = "data-card";
+
+            const heading = document.createElement("h4");
+            heading.textContent =
+                patient.name || patient.fullName ||
+                "Patient " + (index + 1);
+
+            card.appendChild(heading);
+
+            const list = document.createElement("div");
+            list.className = "info-list";
+
+            // Display basic patient details
+            ["patientId", "email", "phone", "age", "gender"].forEach(key => {
+                if (patient[key] !== undefined) {
+                    addInfoRow(list, prettifyKey(key), patient[key]);
+                }
+            });
+
+            // Display medical history explicitly
+            const medicalHistory =
+                patient.medicalHistory ??
+                patient.medicalDetails ??
+                patient.medical_history;
+
+            const historyTitle = document.createElement("h4");
+            historyTitle.textContent = "Medical History";
+            historyTitle.style.marginTop = "15px";
+
+            card.appendChild(list);
+            card.appendChild(historyTitle);
+
+            const historyList = document.createElement("div");
+            historyList.className = "info-list";
+
+            if (medicalHistory === null || medicalHistory === undefined ||
+                medicalHistory === "") {
+                addInfoRow(
+                    historyList,
+                    "Medical History",
+                    "No medical history available"
+                );
+            } else if (typeof medicalHistory === "object") {
+                Object.entries(medicalHistory).forEach(([key, value]) => {
+                    addInfoRow(historyList, prettifyKey(key),
+                        typeof value === "object" && value !== null
+                            ? JSON.stringify(value)
+                            : value
+                    );
+                });
+            } else {
+                addInfoRow(historyList, "Medical History", medicalHistory);
+            }
+
+            card.appendChild(historyList);
+            grid.appendChild(card);
+        });
+
+        output.className = "result";
+        output.replaceChildren(grid);
+
+        if (!grid.children.length) {
+            output.textContent = "No patient details available.";
+        }
+    }
+
+    // Load patients who have not yet been assigned.
+    async function loadUnassignedPatients() {
+        const output = document.getElementById("unassignedPatients");
+        const message = document.getElementById("assignPatientMessage");
+        const loadButton = document.getElementById("loadUnassignedButton");
+
+        loadButton.disabled = true;
+        output.textContent = "Loading unassigned patients...";
+        output.className = "result";
+        message.textContent = "";
+
+        try {
+            const data = await apiRequest(
+                "/doctor/dashboard/unassigned-patients"
+            );
+
+            const patients = getList(data);
+
+            if (!patients.length) {
+                output.textContent = "No unassigned patients available.";
+                output.className = "result empty-message";
+                return;
+            }
+
+            const grid = document.createElement("div");
+            grid.className = "card-grid";
+
+            patients.forEach(patient => {
+                if (!patient || patient.patientId == null) return;
+
+                const card = document.createElement("article");
+                card.className = "data-card";
+
+                // Patient name
+                const heading = document.createElement("h4");
+                heading.textContent = patient.name || "Patient";
+                card.appendChild(heading);
+
+                // Patient details
+                const details = document.createElement("div");
+                details.className = "info-list";
+
+                addInfoRow(details, "Patient ID", patient.patientId);
+                addInfoRow(details, "Name", patient.name || "N/A");
+                addInfoRow(details, "Email", patient.email || "N/A");
+                addInfoRow(details, "Phone", patient.phone || "N/A");
+                addInfoRow(details, "Age", patient.age ?? "N/A");
+                addInfoRow(details, "Gender", patient.gender || "N/A");
+
+                addInfoRow(
+                    details,
+                    "Medical History",
+                    patient.medicalHistory || "No medical history available"
+                );
+
+                card.appendChild(details);
+
+                // Assign button
+                const button = document.createElement("button");
+                button.type = "button";
+                button.textContent = "Assign to Me";
+
+                button.addEventListener("click", async () => {
+                    button.disabled = true;
+
+                    message.textContent =
+                        "Assigning patient " + patient.patientId + "...";
+
+                    try {
+                        const response = await fetch(
+                            "/doctor/dashboard/assign/" +
+                            encodeURIComponent(patient.patientId),
+                            {
+                                method: "PUT",
+                                headers: {
+                                    "Authorization": "Bearer " + token,
+                                    "Accept": "application/json"
+                                }
+                            }
+                        );
+
+                        const responseText = await response.text();
+
+                        if (!response.ok) {
+                            throw new Error(
+                                "HTTP " + response.status + ": " +
+                                (responseText || response.statusText)
+                            );
+                        }
+
+                        message.textContent =
+                            "Patient " + patient.patientId +
+                            " assigned successfully.";
+
+                        // Refresh both patient lists
+                        await loadUnassignedPatients();
+                        await loadPatients();
+
+                    } catch (error) {
+                        message.textContent =
+                            "Assignment failed: " + error.message;
+
+                        button.disabled = false;
+                        console.error("Assignment error:", error);
+                    }
+                });
+
+                card.appendChild(button);
+                grid.appendChild(card);
+            });
+
+            output.className = "result";
+            output.replaceChildren(grid);
+
+            if (!grid.children.length) {
+                output.textContent = "No unassigned patient details available.";
+            }
+
+        } catch (error) {
+            output.textContent = error.message;
+            output.className = "result error-message";
+
+            message.textContent = "Unable to load unassigned patients.";
+
+            console.error("Unassigned patients error:", error);
+
+        } finally {
+            loadButton.disabled = false;
+        }
+    }
+
+    async function displayData(elementId, url, type) {
+        const output = document.getElementById(elementId);
+        const status = document.getElementById("statusMessage");
+
+        output.textContent = "Loading...";
+        output.className = "result";
+        status.textContent = "";
+
+        try {
+            const data = await apiRequest(url);
+
+            if (type === "patients") {
+                renderPatients(output, data);
+            } else if (type === "vitals") {
+                renderVitals(output, data);
+            } else if (type === "alerts") {
+                renderAlerts(output, data);
+            }
+        } catch (error) {
+            output.textContent = error.message;
+            output.className = "result error-message";
+            status.textContent =
+                "Unable to load the requested information.";
+            console.error("Dashboard error:", error);
+        }
+    }
+
+    function loadPatients() {
+        return displayData(
+            "patients",
+            "/doctor/dashboard/patients",
+            "patients"
+        );
+    }
+
+    function loadPatientData(type) {
+        const input = document.getElementById("patientId");
+        const output = document.getElementById(type);
+        const patientId = input.value.trim();
+
+        if (!patientId ||
+            !Number.isInteger(Number(patientId)) ||
+            Number(patientId) < 1) {
+            output.textContent = "Please enter a valid patient ID.";
+            output.className = "result error-message";
+            return;
+        }
+
+        const endpoint = type === "vitals" ? "vitals" : "alerts";
+
+        return displayData(
+            type,
+            "/doctor/dashboard/patients/" +
+            encodeURIComponent(patientId) + "/" + endpoint,
+            type
+        );
+    }
+
+    function renderVitals(output, data) {
+        const readings = getList(data);
+
+        if (!readings.length) {
+            output.textContent =
+                "No vital readings found for this patient.";
+            output.className = "result empty-message";
+            return;
+        }
+
+        const grid = document.createElement("div");
+        grid.className = "card-grid";
+
+        readings.forEach((reading, index) => {
+            if (!reading || typeof reading !== "object") return;
+
+            const card = document.createElement("article");
+            card.className = "data-card";
+
+            const heading = document.createElement("h4");
+            heading.textContent = "Vital Reading " + (index + 1);
+            card.appendChild(heading);
+
+            const vitalGrid = document.createElement("div");
+            vitalGrid.className = "vital-grid";
+
+            const knownVitals = [
+                ["Heart Rate", "heartRate", "bpm"],
+                ["Systolic BP", "systolicBP", "mmHg"],
+                ["Diastolic BP", "diastolicBP", "mmHg"],
+                ["Oxygen Level", "oxygenLevel", "%"],
+                ["Temperature", "temperature", "°C"]
+            ];
+
+            knownVitals.forEach(([label, key, unit]) => {
+                if (reading[key] == null) return;
+
+                const item = document.createElement("div");
+                item.className = "vital-item";
+
+                const name = document.createElement("div");
+                name.className = "vital-label";
+                name.textContent = label;
+
+                const value = document.createElement("div");
+                value.className = "vital-value";
+                value.textContent = reading[key] + " " + unit;
+
+                item.append(name, value);
+                vitalGrid.appendChild(item);
+            });
+
+            card.appendChild(vitalGrid);
+
+            const otherFields = document.createElement("div");
+            otherFields.className = "info-list";
+            otherFields.style.marginTop = "12px";
+
+            Object.entries(reading).forEach(([key, value]) => {
+                if (/heartRate|systolicBP|diastolicBP|oxygenLevel|temperature|patient|password|token/i.test(key)) {
+                    return;
+                }
+
+                if (value !== null && typeof value === "object") return;
+
+                addInfoRow(otherFields, prettifyKey(key), value);
+            });
+
+            if (otherFields.children.length) {
+                card.appendChild(otherFields);
+            }
+
+            grid.appendChild(card);
+        });
+
+        output.className = "result";
+        output.replaceChildren(grid);
+
+        if (!grid.children.length) {
+            output.textContent = "No vital details available.";
+        }
+    }
+
+    function renderAlerts(output, data) {
+        const alerts = getList(data);
+
+        if (!alerts.length) {
+            output.textContent = "No alerts found for this patient.";
+            output.className = "result empty-message";
+            return;
+        }
+
+        const grid = document.createElement("div");
+        grid.className = "card-grid";
+
+        alerts.forEach(alert => {
+            if (!alert || typeof alert !== "object") return;
+
+            const card = document.createElement("article");
+            card.className = "data-card alert-card";
+
+            const heading = document.createElement("div");
+            heading.className = "alert-heading";
+
+            const title = document.createElement("strong");
+            title.textContent = alert.message || "Health Alert";
+            heading.appendChild(title);
+
+            if (alert.severity) {
+                const badge = document.createElement("span");
+                badge.className = "badge";
+                badge.textContent = alert.severity;
+                heading.appendChild(badge);
+            }
+
+            card.appendChild(heading);
+
+            if (alert.severity) {
+                const severity = document.createElement("p");
+                severity.className =
+                    "severity " + String(alert.severity).toLowerCase();
+                severity.textContent = "Severity: " + alert.severity;
+                card.appendChild(severity);
+            }
+
+            if (alert.createdAt) {
+                const date = document.createElement("p");
+                date.className = "alert-date";
+
+                const parsed = new Date(alert.createdAt);
+                date.textContent = "Created: " +
+                    (Number.isNaN(parsed.getTime())
+                        ? alert.createdAt
+                        : parsed.toLocaleString());
+
+                card.appendChild(date);
+            }
+
+            if (alert.patient && typeof alert.patient === "object") {
+                const patientTitle = document.createElement("h4");
+                patientTitle.textContent =
+                    "Patient: " + (alert.patient.name || "Not specified");
+                patientTitle.style.marginTop = "16px";
+                card.appendChild(patientTitle);
+
+                const patientInfo = document.createElement("div");
+                patientInfo.className = "info-list";
+
+                ["patientId", "age", "gender"].forEach(key => {
+                    if (alert.patient[key] != null) {
+                        addInfoRow(
+                            patientInfo,
+                            prettifyKey(key),
+                            alert.patient[key]
+                        );
+                    }
+                });
+
+                if (patientInfo.children.length) {
+                    card.appendChild(patientInfo);
+                }
+            }
+
+            const vitalStats = alert.vitalStats;
+
+            if (vitalStats && typeof vitalStats === "object") {
+                const subheading = document.createElement("h4");
+                subheading.textContent = "Related Vital Signs";
+                subheading.style.marginTop = "16px";
+                card.appendChild(subheading);
+
+                const vitals = document.createElement("div");
+                vitals.className = "vital-grid";
+
+                [
+                    ["Heart Rate", "heartRate", "bpm"],
+                    ["Systolic BP", "systolicBP", "mmHg"],
+                    ["Diastolic BP", "diastolicBP", "mmHg"],
+                    ["Oxygen Level", "oxygenLevel", "%"],
+                    ["Temperature", "temperature", "°C"]
+                ].forEach(([label, key, unit]) => {
+                    if (vitalStats[key] == null) return;
+
+                    const item = document.createElement("div");
+                    item.className = "vital-item";
+
+                    const name = document.createElement("div");
+                    name.className = "vital-label";
+                    name.textContent = label;
+
+                    const value = document.createElement("div");
+                    value.className = "vital-value";
+                    value.textContent = vitalStats[key] + " " + unit;
+
+                    item.append(name, value);
+                    vitals.appendChild(item);
+                });
+
+                card.appendChild(vitals);
+            }
+
+            grid.appendChild(card);
+        });
+
+        output.className = "result";
+        output.replaceChildren(grid);
+
+        if (!grid.children.length) {
+            output.textContent = "No valid alerts were returned.";
+        }
+    }
+
+    // Save vital signs only once per form submission.
+    document.getElementById("vitalsForm").addEventListener(
+        "submit",
+        async function (event) {
+            event.preventDefault();
+
+            const patientId =
+                document.getElementById("recordPatientId").value.trim();
+            const message =
+                document.getElementById("saveVitalsMessage");
+            const button =
+                document.getElementById("saveVitalsButton");
+
+            const readings = {
+                heartRate: Number(
+                    document.getElementById("heartRate").value
+                ),
+                systolicBP: Number(
+                    document.getElementById("systolicBP").value
+                ),
+                diastolicBP: Number(
+                    document.getElementById("diastolicBP").value
+                ),
+                oxygenLevel: Number(
+                    document.getElementById("oxygenLevel").value
+                ),
+                temperature: Number(
+                    document.getElementById("temperature").value
+                )
+            };
+
+            if (!patientId ||
+                !Number.isInteger(Number(patientId)) ||
+                Number(patientId) < 1) {
+                message.textContent = "Enter a valid patient ID.";
+                return;
+            }
+
+            message.textContent = "Saving readings...";
+            button.disabled = true;
+
+            try {
+                const response = await fetch(
+                    "/vitals/patient/" + encodeURIComponent(patientId),
+                    {
+                        method: "POST",
+                        headers: {
+                            "Authorization": "Bearer " + token,
+                            "Content-Type": "application/json",
+                            "Accept": "application/json"
+                        },
+                        body: JSON.stringify(readings)
+                    }
+                );
+
+                const responseText = await response.text();
+
+                if (!response.ok) {
+                    throw new Error(
+                        "HTTP " + response.status + ": " +
+                        (responseText || response.statusText)
+                    );
+                }
+
+                message.textContent =
+                    "Vital signs saved successfully.";
+
+                document.getElementById("patientId").value = patientId;
+
+                await loadPatientData("vitals");
+                await loadPatientData("alerts");
+
+                document.getElementById("vitalsForm").reset();
+
+            } catch (error) {
+                message.textContent =
+                    "Could not save vital signs: " + error.message;
+                console.error("Save vital signs error:", error);
+            } finally {
+                button.disabled = false;
+            }
+        }
+    );
+
+    function logout() {
+        sessionStorage.removeItem("shmsToken");
+        sessionStorage.removeItem("shmsRole");
+        sessionStorage.removeItem("shmsEmail");
+        window.location.replace("/login");
+    }
+</script>
+</body>
+</html>

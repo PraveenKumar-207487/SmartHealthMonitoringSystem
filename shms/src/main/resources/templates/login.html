@@ -1,0 +1,121 @@
+
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SHMS | Login</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div class="auth-container">
+    <div class="auth-card">
+        <h1>SHMS</h1>
+        <p class="subtitle">Smart Health Monitoring System</p>
+
+        <form id="loginForm">
+            <label for="email">Email</label>
+            <input type="email" id="email" required placeholder="Enter your email">
+
+            <label for="password">Password</label>
+            <input type="password" id="password" required placeholder="Enter your password">
+
+            <label for="role">Login as</label>
+            <select id="role" required>
+                <option value="PATIENT">Patient</option>
+                <option value="DOCTOR">Doctor</option>
+            </select>
+
+            <button type="submit" id="loginButton">Login</button>
+            <p id="message" role="alert"></p>
+        </form>
+
+        <p class="footer-text">
+            New to SHMS? <a th:href="@{/register}">Create an account</a>
+        </p>
+    </div>
+</div>
+
+
+<script>
+    const loginForm = document.getElementById("loginForm");
+    const message = document.getElementById("message");
+    const loginButton = document.getElementById("loginButton");
+
+    loginForm.addEventListener("submit", async function (event) {
+        event.preventDefault();
+
+        const role = document.getElementById("role").value;
+        const endpoint = role === "DOCTOR"
+            ? "/auth/login/doctor"
+            : "/auth/login";
+
+        message.textContent = "";
+        loginButton.disabled = true;
+        loginButton.textContent = "Logging in...";
+
+        try {
+            const response = await fetch(endpoint, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    email: document.getElementById("email").value.trim(),
+                    password: document.getElementById("password").value
+                })
+            });
+
+            const responseText = await response.text();
+            console.log("Login status:", response.status);
+            console.log("Login response:", responseText);
+
+            let data = {};
+            try {
+                data = responseText ? JSON.parse(responseText) : {};
+            } catch {
+                throw new Error(
+                    "Login API returned a non-JSON response. Check the browser Console."
+                );
+            }
+
+            if (!response.ok) {
+                throw new Error(
+                    data.message || data.error ||
+                    "Login failed. HTTP status: " + response.status
+                );
+            }
+
+            if (!data.token) {
+                throw new Error(
+                    "Login succeeded, but the response has no 'token' field. Check Console."
+                );
+            }
+
+            if (data.role &&
+                data.role.toUpperCase() !== role) {
+                throw new Error("Selected role does not match the account role.");
+            }
+
+            sessionStorage.setItem("shmsToken", data.token);
+            sessionStorage.setItem("shmsRole", role);
+            sessionStorage.setItem("shmsEmail", data.email || "");
+
+            window.location.assign(
+                role === "DOCTOR"
+                    ? "/doctor-dashboard"
+                    : "/patient-dashboard"
+            );
+
+        } catch (error) {
+            console.error("Login error:", error);
+            message.textContent =
+                error.message || "Unable to connect to the server.";
+        } finally {
+            loginButton.disabled = false;
+            loginButton.textContent = "Login";
+        }
+    });
+</script>
+</body>
+</html>
